@@ -14,10 +14,13 @@ device = '/gpu:0'
 
 # A small part of this script is based on https://github.com/Zardinality/WGAN-tensorflow
 
+TRAIN = 0
+EVAL = 1
+RESTORE_TRAIN = 2
 
 class GAN:
 
-  def __init__(self, cfg, restore=False):
+  def __init__(self, cfg, mode=TRAIN):
     sess_config = tf.ConfigProto(allow_soft_placement=True)
     sess_config.gpu_options.allow_growth = True
     sess_config.gpu_options.per_process_gpu_memory_fraction = 0.4
@@ -35,13 +38,21 @@ class GAN:
     if not os.path.exists(self.image_dir):
       os.makedirs(self.image_dir)
 
-    if not restore:
+    self.mode = mode
+    if mode == EVAL:
+      load_dataset = False
+    elif mode == TRAIN:
       self.backup_scripts()
       self.tee = Tee(os.path.join(self.dir, 'log.txt'))
+      load_dataset = True
+    elif mode == RESTORE_TRAIN:
+      self.backup_scripts()
+      self.tee = Tee(os.path.join(self.dir, 'log.txt'), append=True)
+      load_dataset = True
 
     self.is_train = tf.placeholder(tf.int32, shape=[], name='is_train')
     self.is_training = tf.equal(self.is_train, 1)
-    self.memory = ReplayMemory(cfg, load=not restore)
+    self.memory = ReplayMemory(cfg, load=load_dataset)
 
     self.z = self.memory.z
     self.real_data = self.memory.real_data
@@ -276,10 +287,14 @@ class GAN:
     self.merged_all = tf.summary.merge_all()
     self.summary_writer = tf.summary.FileWriter(self.dir, self.sess.graph)
 
-    if not restore:
+    if load_dataset:
       self.fixed_feed_dict_random = self.memory.get_feed_dict(
           self.cfg.num_samples)
     self.high_res_nets = {}
+
+    print("mode = {}".format(mode))
+    if mode==EVAL or mode==RESTORE_TRAIN:
+      self.restore()
 
   def get_training_feed_dict_and_states(self, iter):
     feed_dict, features = self.memory.get_feed_dict_and_states(
@@ -304,7 +319,11 @@ class GAN:
     # critic gradient (critic logit w.r.t. critic input image) norm
     cgn = 0
 
-    for iter in range(self.cfg.max_iter_step + 1):
+    if self.mode == RESTORE_TRAIN:
+      start_iter = self.start_iter
+    else:
+      start_iter = 0
+    for iter in range(start_iter, self.cfg.max_iter_step + 1):
       progress = float(iter) / self.cfg.max_iter_step
       iter_start_time = time.time()
       run_options = tf.RunOptions()
@@ -402,9 +421,21 @@ class GAN:
              np.median(g_loss_pool), np.median(v_loss_pool),
              np.median(emd_pool), cgn))
 
-  def restore(self, ckpt):
-    self.saver.restore(self.sess, os.path.join(self.dir,
-                                               "model.ckpt-%s" % ckpt))
+  def restore(self):
+    files = os.listdir(self.dir)
+    model_files = []
+    for file in files:
+      file_split = file.split('model.ckpt-')
+      if len(file_split)==2:
+        model_files.append(file)
+    model_file_paths = [os.path.join(self.dir, f) for f in model_files]
+    model_file_path = max(model_file_paths, key=os.path.getctime)
+
+    model_name = os.path.splitext(os.path.basename(model_file_path))[0]
+    print("restore model from {}".format(model_name))
+    self.saver.restore(self.sess, os.path.join(self.dir, model_name))
+    ckpt = model_name.split('-')[-1]
+    self.start_iter = int(ckpt) + 1
 
   def gradient_processor(self, grads):
     if self.cfg.gan == 'ls':
@@ -747,7 +778,7 @@ class GAN:
         high_res_image /= 2 * high_res_image.max() # Mimic RAW exposure
         
         # Uncomment to bypass preprocessing
-        # high_res_image = image
+        high_res_image = image
 
       noises = [
           self.memory.get_noise(batch_size) for _ in range(self.cfg.test_steps)
@@ -776,7 +807,8 @@ class GAN:
       #    continue
 
       high_res_input = high_res_image
-      low_res_img = cv2.resize(get_image_center(high_res_image), dsize=(64, 64))
+      # low_res_img = cv2.resize(get_image_center(high_res_image), dsize=(64, 64))
+      low_res_img = cv2.resize(high_res_image, dsize=(64, 64))
       res = high_res_input.shape[:2]
       net = self.get_high_resolution_net(res)
 
@@ -825,7 +857,7 @@ class GAN:
       linear_high_res = high_res_input
 
       # Max to white, and then gamma correction
-      high_res_input = (high_res_input / high_res_input.max())**(1 / 2.4)
+      # high_res_input = (high_res_input / high_res_input.max())**(1 / 2.4)
 
       # Save linear
       if show_linear:
@@ -855,7 +887,7 @@ class GAN:
         fused[sy:sy + patch, sx:sx + patch] = cv2.resize(
             low_res_img_trajs[i],
             dsize=(patch, patch),
-            interpolation=cv2.cv2.INTER_NEAREST)
+            interpolation=cv2.INTER_NEAREST)
 
       for i in range(len(low_res_img_trajs) - 1):
         sx = grid * i + grid // 2
@@ -863,15 +895,15 @@ class GAN:
         fused[sy:sy + patch, sx:sx + patch] = cv2.resize(
             decisions[i],
             dsize=(patch, patch),
-            interpolation=cv2.cv2.INTER_NEAREST)
+            interpolation=cv2.INTER_NEAREST)
         sy = grid * 2 - padding // 2
         fused[sy:sy + patch, sx:sx + patch] = cv2.resize(
             operations[i],
             dsize=(patch, patch),
-            interpolation=cv2.cv2.INTER_NEAREST)
+            interpolation=cv2.INTER_NEAREST)
         sy = grid * 3 - padding
         fused[sy:sy + patch, sx:sx + patch] = cv2.resize(
-            masks[i], dsize=(patch, patch), interpolation=cv2.cv2.INTER_NEAREST)
+            masks[i], dsize=(patch, patch), interpolation=cv2.INTER_NEAREST)
 
       # Save steps
       show_and_save('steps', fused)

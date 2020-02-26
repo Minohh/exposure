@@ -126,8 +126,8 @@ cfg.real_img_channels = 1 if cfg.bnw else 3
 ###########################################################################
 cfg.supervised = False
 cfg.batch_size = 64
-multiplier = 2
-cfg.max_iter_step = int(10000 * multiplier)
+multiplier = 5
+cfg.max_iter_step = int(20000 * multiplier)
 
 ##################################
 # Learning Rates
@@ -183,9 +183,9 @@ cfg.write_image_interval = int(200 * multiplier)
 
 
 # Input dataset (train)
-cfg.fake_data_provider = lambda: FolderDataProvider(folder='models/sintel/inputs', default_batch_size=cfg.batch_size)
+cfg.fake_data_provider = lambda: FolderDataProvider(folder='/data/ouming/Media/LIKEE/India', default_batch_size=cfg.batch_size)
 # Input dataset (test)
-cfg.fake_data_provider_test = lambda: FolderDataProvider(folder='models/sintel/inputs', default_batch_size=cfg.batch_size)
+cfg.fake_data_provider_test = lambda: FolderDataProvider(folder='/data/ouming/Media/LIKEE/India', default_batch_size=cfg.batch_size)
 # Target dataset
-cfg.real_data_provider = lambda: FolderDataProvider(folder='models/sintel/outputs', default_batch_size=cfg.batch_size)
+cfg.real_data_provider = lambda: FolderDataProvider(folder='/data/ouming/Media/YTB/India', default_batch_size=cfg.batch_size)
 

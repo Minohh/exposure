@@ -9,8 +9,8 @@ class ReplayMemory:
 
   def __init__(self, cfg, load):
     self.cfg = cfg
-    self.real_dataset = cfg.real_data_provider()
     if load:
+      self.real_dataset = cfg.real_data_provider()
       self.fake_dataset = cfg.fake_data_provider()
       self.fake_dataset_test = cfg.fake_data_provider_test()
     self.fake_input = tf.placeholder(

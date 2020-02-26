@@ -245,8 +245,11 @@ def leaky_clamp(x, lower, upper, leak=0.1, name="leaky_clamp"):
 
 class Tee(object):
 
-  def __init__(self, name):
-    self.file = open(name, 'w')
+  def __init__(self, name, append=False):
+    if not append:
+      self.file = open(name, 'w')
+    else:
+      self.file = open(name, 'a')
     self.stdout = sys.stdout
     self.stderr = sys.stderr
     sys.stdout = self
