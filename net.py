@@ -293,6 +293,7 @@ class GAN:
     self.high_res_nets = {}
 
     print("mode = {}".format(mode))
+    self.previous_iter = 0
     if mode==EVAL or mode==RESTORE_TRAIN:
       self.restore()
 
@@ -319,11 +320,9 @@ class GAN:
     # critic gradient (critic logit w.r.t. critic input image) norm
     cgn = 0
 
-    if self.mode == RESTORE_TRAIN:
-      start_iter = self.start_iter
-    else:
-      start_iter = 0
-    for iter in range(start_iter, self.cfg.max_iter_step + 1):
+    for iter in range(self.cfg.max_iter_step + 1):
+      global_iter = iter + self.previous_iter
+      
       progress = float(iter) / self.cfg.max_iter_step
       iter_start_time = time.time()
       run_options = tf.RunOptions()
@@ -390,7 +389,7 @@ class GAN:
 
       # Visualizations
       if self.cfg.realtime_vis or iter % self.cfg.write_image_interval == 0:
-        self.visualize(iter)
+        self.visualize(global_iter)
 
       v_loss_pool = v_loss_pool[-self.cfg.median_filter_size:]
       g_loss_pool = g_loss_pool[-self.cfg.median_filter_size:]
@@ -400,7 +399,7 @@ class GAN:
         self.saver.save(
             self.sess,
             os.path.join(self.dir, "model.ckpt"),
-            global_step=(iter + 1))
+            global_step=(global_iter + 1))
 
       if iter % 100 == 0:
         eta = (time.time() - start_t) / (iter + 1) / 3600 * (
@@ -417,7 +416,7 @@ class GAN:
       if iter % 10 == 0:
         print(
             'it%6d,%5.0f ms/it, g_loss=%.2f, v_loss=%.2f, EMD=%.3f, cgn=%.2f' %
-            (iter, 1000 * (time.time() - iter_start_time),
+            (global_iter, 1000 * (time.time() - iter_start_time),
              np.median(g_loss_pool), np.median(v_loss_pool),
              np.median(emd_pool), cgn))
 
@@ -428,6 +427,8 @@ class GAN:
       file_split = file.split('model.ckpt-')
       if len(file_split)==2:
         model_files.append(file)
+    if len(model_files)==0:
+        return
     model_file_paths = [os.path.join(self.dir, f) for f in model_files]
     model_file_path = max(model_file_paths, key=os.path.getctime)
 
@@ -435,7 +436,7 @@ class GAN:
     print("restore model from {}".format(model_name))
     self.saver.restore(self.sess, os.path.join(self.dir, model_name))
     ckpt = model_name.split('-')[-1]
-    self.start_iter = int(ckpt) + 1
+    self.previous_iter = int(ckpt)
 
   def gradient_processor(self, grads):
     if self.cfg.gan == 'ls':
