@@ -18,7 +18,8 @@ FAKE_PACKET_NAME = 'resize_image_fake.npy'
 parser = argparse.ArgumentParser(description="dump low res fake/target images from dir")
 parser.add_argument("image_dir", help="image directory, can search images recursively")
 parser.add_argument("data_name", help="data name for specifying directory under ./data/data_name")
-parser.add_argument("target_or_fake", help="images are target (0) or fake (1) images")
+parser.add_argument("target_or_fake", help="images are target (0) or fake (1) images", type=int)
+parser.add_argument("augmentation_factor", help="augmentation_factor 1~2", nargs='?', const=1, type=int)
 
 image_suffixs = ["png", "jpg", "bmp", "jpeg"]
 
@@ -52,6 +53,7 @@ def generate_data_packet(src_dir, data_name, target_or_fake, augmentation_factor
     os.makedirs(dir_path)
   image_pack_path = os.path.join(DATA_DIR, data_name, packet_name)
   files = gather_images(src_dir)
+  print("files: {}".format(len(files)))
   files = sorted(files)
   data = {}
   data['filenames'] = [None for _ in range(len(files))]
@@ -115,6 +117,7 @@ if __name__ == '__main__':
   args = parser.parse_args()
   src_dir = args.image_dir
   data_name = args.data_name
-  target_or_fake = int(args.target_or_fake)
-  generate_data_packet(src_dir, data_name, target_or_fake)
+  target_or_fake = args.target_or_fake
+  augmentation_factor = args.augmentation_factor
+  generate_data_packet(src_dir, data_name, target_or_fake, augmentation_factor)
   test(data_name, target_or_fake)

@@ -658,12 +658,12 @@ def test_async_task_manager():
 
   task.i = 0
 
-  async = AsyncTaskManager(task)
+  asyn = AsyncTaskManager(task)
   t = time.time()
   for i in range(5):
-    ret = async.get_next()
+    ret = asyn.get_next()
     # ret = task()
     print('got', ret)
     time.sleep(1)
-  async.stop()
+  asyn.stop()
   print(time.time() - t)
