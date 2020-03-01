@@ -388,7 +388,7 @@ class GAN:
             run_metadata, 'generator_metadata {}'.format(iter), iter)
 
       # Visualizations
-      if self.cfg.realtime_vis or iter % self.cfg.write_image_interval == 0:
+      if self.cfg.realtime_vis or global_iter % self.cfg.write_image_interval == 0:
         self.visualize(global_iter)
 
       v_loss_pool = v_loss_pool[-self.cfg.median_filter_size:]

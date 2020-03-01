@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser(description="dump low res fake/target images fr
 parser.add_argument("image_dir", help="image directory, can search images recursively")
 parser.add_argument("data_name", help="data name for specifying directory under ./data/data_name")
 parser.add_argument("target_or_fake", help="images are target (0) or fake (1) images", type=int)
-parser.add_argument("augmentation_factor", help="augmentation_factor 1~2", nargs='?', const=1, type=int)
+parser.add_argument("augmentation_factor", help="augmentation_factor 1~2", nargs='?', default=1, type=int)
 
 image_suffixs = ["png", "jpg", "bmp", "jpeg"]
 
