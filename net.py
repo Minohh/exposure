@@ -608,13 +608,15 @@ class GAN:
 
     tmp_fake_output = [img] * self.cfg.batch_size
     tmp_fake_output = np.stack(tmp_fake_output, axis=0)
-    initial_value, initial_score = self.sess.run(
-        [self.new_value[0], self.centered_fake_logit[0]],
+    initial_values, initial_scores = self.sess.run(
+        [self.new_value, self.centered_fake_logit],
         feed_dict={
             self.fake_output: tmp_fake_output,
             self.new_states: states,
             self.progress: progress
         })
+    initial_value = initial_values[0]
+    initial_score = initial_scores[0]
 
     images.append(
         self.draw_value_reward_score(img, initial_value, 0, initial_score))
@@ -633,18 +635,23 @@ class GAN:
       if self.cfg.supervised:
         feed_dict[self.ground_truth] = [ground_truth]
         feed_dict[self.progress] = progress
-      debug_info, img, grad, new_state, new_value, score, reward = self.sess.run(
+      debug_info, imgs, grads, new_states, new_values, scores, rewards = self.sess.run(
           [
-              self.generator_debug_output, self.fake_output[0],
-              self.fake_gradients[0], self.new_states, self.new_value[0],
-              self.centered_fake_logit[0], self.reward[0]
+              self.generator_debug_output, self.fake_output,
+              self.fake_gradients, self.new_states, self.new_value,
+              self.centered_fake_logit, self.reward
           ],
           feed_dict=feed_dict)
+      img       = imgs[0]
+      grad      = grads[0]
+      new_value = new_values[0]
+      score     = scores[0]
+      reward    = rewards[0]
       debug_plot = self.generator_debugger(debug_info)
       images.append(self.draw_value_reward_score(img, new_value, reward, score))
       gradients.append(grad)
       debug_plots.append(debug_plot)
-      states = new_state
+      states = new_states
 
       if states[0, STATE_STOPPED_DIM] > 0:
         break

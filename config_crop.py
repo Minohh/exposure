@@ -1,6 +1,6 @@
 from artist import ArtistDataProvider
 from fivek import FiveKDataProvider
-from folder_data_provider import FolderDataProvider
+from crop_data_provider import CropDataProvider
 from critics import critic
 from agent import agent_generator
 from util import Dict

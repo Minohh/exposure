@@ -126,7 +126,7 @@ cfg.real_img_channels = 1 if cfg.bnw else 3
 ###########################################################################
 cfg.supervised = False
 cfg.batch_size = 64
-multiplier = 2
+multiplier = 1
 cfg.max_iter_step = int(1000 * multiplier)
 
 ##################################
@@ -171,7 +171,7 @@ cfg.summary_freq = 100
 cfg.vis_draw_critic_scores = True
 cfg.vis_step_test = False
 cfg.realtime_vis = False
-cfg.write_image_interval = int(200 * multiplier)
+cfg.write_image_interval = int(100 * multiplier)
 
 ###########################################################################
 # Dataset Parameters
